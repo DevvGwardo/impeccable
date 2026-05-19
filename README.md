@@ -10,7 +10,18 @@ Based on [pbakaus/impeccable](https://github.com/pbakaus/impeccable) (Apache 2.0
 
 ## What it does
 
+<p align="center">
+  <img src="docs/how-impeccable-works.png" alt="How Impeccable Transforms Frontend Design — 5-phase workflow from Learn to Ship" width="95%">
+</p>
+
 Impeccable designs and iterates production-grade frontend interfaces. Real working code, committed design choices, exceptional craft.
+
+**5 phases, 23 commands:**
+1. **Learn** — Gather design context (`teach`, `document`)
+2. **Shape** — Plan UX/UI before code (`shape`, `craft`)
+3. **Evaluate** — Critique and audit (`critique`, `audit`)
+4. **Enhance** — Color, type, motion, delight (`colorize`, `animate`, `typeset`, `layout`, `delight`, `overdrive`)
+5. **Ship** — Polish, harden, optimize (`polish`, `harden`, `optimize`)
 
 ### Commands
 
