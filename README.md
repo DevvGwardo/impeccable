@@ -4,6 +4,8 @@
   <img src="docs/banner.png" alt="Impeccable — Frontend Design Skill" width="95%">
 </p>
 
+<!-- docs/banner.png is rendered from docs/banner.html with headless Chrome at 1280x640. -->
+
 [pbakaus/impeccable](https://github.com/pbakaus/impeccable), the frontend design skill, packaged for [Hermes Agent](https://github.com/NousResearch/hermes-agent). It shapes, critiques, audits, polishes and refines UI: real working code, committed design choices, and a mechanical anti-pattern detector.
 
 This repo tracks upstream's generated Hermes build release by release (see [`UPSTREAM`](UPSTREAM) for the pinned tag) and adds a small Hermes overlay on top:

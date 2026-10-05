@@ -1,0 +1,49 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;800&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;width:1280px;height:640px;overflow:hidden;background:#020617;font-family:Inter,system-ui,sans-serif}
+  .stage{position:relative;width:1280px;height:640px;
+    background:
+      radial-gradient(ellipse 520px 140px at 640px 285px, rgba(14,116,144,.16), transparent 70%),
+      linear-gradient(rgba(30,58,90,.14) 1px, transparent 1px) 0 0/40px 40px,
+      linear-gradient(90deg, rgba(30,58,90,.14) 1px, transparent 1px) 0 0/40px 40px,
+      #020617;}
+  .rule{position:absolute;left:130px;right:130px;height:1px;background:linear-gradient(90deg,transparent,rgba(34,211,238,.25),transparent)}
+  .ticks-top{position:absolute;top:30px;left:120px;right:120px;height:8px;
+    background:linear-gradient(90deg,rgba(100,116,139,.35) 1px,transparent 1px) 0 0/74px 8px}
+  .ticks-left{position:absolute;left:30px;top:80px;bottom:80px;width:8px;
+    background:linear-gradient(rgba(100,116,139,.35) 1px,transparent 1px) 0 0/8px 43px}
+  .corner{position:absolute;width:30px;height:30px;border-color:rgba(34,211,238,.35);border-style:solid;border-width:0}
+  .tl{left:50px;top:50px;border-left-width:1px;border-top-width:1px}
+  .tr{right:50px;top:50px;border-right-width:1px;border-top-width:1px}
+  .bl{left:50px;bottom:50px;border-left-width:1px;border-bottom-width:1px}
+  .br{right:50px;bottom:50px;border-right-width:1px;border-bottom-width:1px}
+  .card{position:absolute;border:1px solid rgba(30,64,100,.45);border-radius:6px;background:rgba(15,30,50,.25)}
+  .bar{height:5px;border-radius:3px;background:rgba(51,85,120,.45);margin:8px 10px}
+  h1{position:absolute;left:0;right:0;top:232px;margin:0;text-align:center;color:#f1f5f9;
+    font-weight:800;font-size:100px;letter-spacing:.14em;text-indent:.14em;
+    text-shadow:0 0 40px rgba(56,189,248,.18)}
+  .sub{position:absolute;left:0;right:0;top:352px;text-align:center;color:#22b8cf;font-weight:500;
+    font-size:17px;letter-spacing:.32em;text-indent:.32em}
+  .tag{position:absolute;left:0;right:0;top:395px;text-align:center;color:#64748b;font-size:14px;letter-spacing:.02em}
+  .dot{position:absolute;width:4px;height:4px;border-radius:50%;background:rgba(45,212,191,.45)}
+  .bars{position:absolute;right:42px;bottom:70px;display:flex;gap:7px;align-items:flex-end}
+  .bars i{display:block;width:21px;background:rgba(30,64,100,.5);border-radius:2px}
+</style></head>
+<body><div class="stage">
+  <div class="ticks-top"></div><div class="ticks-left"></div>
+  <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+  <div class="rule" style="top:180px"></div><div class="rule" style="top:460px"></div>
+  <div class="card" style="left:60px;top:60px;width:140px;height:90px"><div class="bar" style="width:70px;margin-top:12px"></div><div class="bar" style="width:118px"></div><div class="bar" style="width:100px"></div><div class="bar" style="width:88px"></div></div>
+  <div class="card" style="right:70px;top:70px;width:100px;height:36px"><div class="bar" style="width:70px;height:16px;border-radius:8px;margin:9px 14px"></div></div>
+  <div class="card" style="left:80px;bottom:60px;width:120px;height:80px"><div style="width:24px;height:24px;border-radius:50%;background:rgba(51,85,120,.45);margin:12px"></div><div class="bar" style="width:76px"></div><div class="bar" style="width:56px"></div></div>
+  <div class="card" style="right:60px;bottom:60px;width:160px;height:70px;border-color:transparent;background:transparent"></div>
+  <div class="bars"><i style="height:22px"></i><i style="height:36px"></i><i style="height:26px"></i><i style="height:44px"></i><i style="height:32px"></i></div>
+  <div class="dot" style="left:200px;top:200px"></div><div class="dot" style="left:976px;top:150px"></div>
+  <div class="dot" style="left:1076px;top:436px"></div><div class="dot" style="left:280px;top:486px"></div>
+  <div class="dot" style="left:926px;top:356px"></div>
+  <h1>IMPECCABLE</h1>
+  <div class="sub">FRONTEND DESIGN SKILL</div>
+  <div class="tag">UI design, critique, polish &amp; iteration for Hermes Agent</div>
+</div></body></html>
