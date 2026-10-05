@@ -12,9 +12,15 @@ This repo tracks upstream's generated Hermes build release by release (see [`UPS
 
 - `metadata.hermes` tags and related skills.
 - A description that leads with its routing signal, because Hermes' system-prompt skill index keeps only the first 57 characters.
-- A setup note telling the agent to resolve `scripts/impeccable` from the `skill_dir` that `skill_view` returns, so global installs work (upstream's fallback path assumes a project-local install).
+- A setup note telling the agent to resolve `scripts/impeccable` from the `skill_dir` that `skill_view` returns, so global installs work (upstream's fallback path assumes a project-local install), and to call it through `sh`, since `hermes skills install` drops its executable bit.
 
 ## Install
+
+```bash
+hermes skills install DevvGwardo/impeccable
+```
+
+It installs to `~/.hermes/skills/creative/impeccable` and passes Hermes' install-time security scan. To install by hand instead:
 
 ```bash
 dest="${HERMES_HOME:-$HOME/.hermes}/skills/creative/impeccable"
@@ -56,7 +62,7 @@ Surfaces are designed in one of four modes: **Persuade** (landing, marketing, pr
 Hermes has no edit-hook surface, so the `hooks` command (auto-running the detector after each UI edit) does nothing here. The skill runs the detector itself at the end of a change, and you can run it by hand:
 
 ```bash
-~/.hermes/skills/creative/impeccable/scripts/impeccable detect --json src/
+sh ~/.hermes/skills/creative/impeccable/scripts/impeccable detect --json src/
 ```
 
 ## Updating
