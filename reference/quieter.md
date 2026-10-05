@@ -2,11 +2,11 @@ Quiet design is harder than bold design. Subtlety needs precision. Reduce visual
 
 ---
 
-## Register
+## Visitor mode
 
-Brand: "quieter" means more restrained palette, more whitespace, more typographic air. Drama is reduced, not eliminated; the POV stays intact.
+Persuade + Experience: "quieter" means more restrained palette, more whitespace, more typographic air. Drama is reduced, not eliminated; the POV stays intact.
 
-Product: "quieter" means reducing visual noise. Fewer background accents, flatter cards, less color, less motion. The tool should disappear more completely into the task.
+Operate + Read: "quieter" means reducing visual noise. Fewer background accents, flatter cards, less color, less motion. The tool should disappear more completely into the task.
 
 ---
 
@@ -28,7 +28,7 @@ Analyze what makes the design feel too intense:
    - What's working? (Don't throw away good ideas)
    - What's the core message? (Preserve what matters)
 
-If any of these are unclear from the codebase, {{ask_instruction}}
+If any of these are unclear from the codebase, do not guess. Ask the user directly to clarify what you cannot infer.
 
 **CRITICAL**: "Quieter" doesn't mean boring or generic. It means refined and easier on the eyes. Think luxury, not laziness.
 
@@ -96,4 +96,4 @@ Ensure refinement maintains quality:
 - **Better reading**: Is text easier to read for extended periods?
 - **Restrained, not absent**: Does the POV survive the cuts?
 
-When the result feels right, hand off to `{{command_prefix}}impeccable polish` for the final pass.
+When the result feels right, hand off to `/impeccable polish` for the final pass.

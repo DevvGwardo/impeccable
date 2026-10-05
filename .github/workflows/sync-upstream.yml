@@ -1,0 +1,46 @@
+name: Sync upstream
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Upstream tag (blank = latest skill-v* release)"
+        required: false
+  pull_request:
+    paths: ["SKILL.md", "reference/**", "scripts/**", "tools/**"]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: tools/check.sh
+
+  sync:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync from upstream
+        id: sync
+        env:
+          REF: ${{ inputs.ref }}
+        run: |
+          tools/sync-upstream.sh ${REF:+"$REF"}
+          echo "tag=$(cut -d' ' -f1 UPSTREAM)" >> "$GITHUB_OUTPUT"
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: sync/${{ steps.sync.outputs.tag }}
+          commit-message: "sync: upstream ${{ steps.sync.outputs.tag }}"
+          title: "Sync upstream ${{ steps.sync.outputs.tag }}"
+          body: |
+            Rebuilt from pbakaus/impeccable `${{ steps.sync.outputs.tag }}` (`.hermes/skills/impeccable`) with the Hermes overlay reapplied. `tools/check.sh` passed.
+
+            Release notes: https://github.com/pbakaus/impeccable/releases/tag/${{ steps.sync.outputs.tag }}

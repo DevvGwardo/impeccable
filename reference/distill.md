@@ -21,7 +21,7 @@ Analyze what makes the design feel complex or cluttered:
    - What can be removed, hidden, or combined?
    - What's the 20% that delivers 80% of value?
 
-If any of these are unclear from the codebase, {{ask_instruction}}
+If any of these are unclear from the codebase, do not guess. Ask the user directly to clarify what you cannot infer.
 
 **CRITICAL**: Simplicity is not about removing features. It's about removing obstacles between users and their goals. Every element should justify its existence.
 
@@ -66,8 +66,8 @@ Systematically remove complexity across these dimensions:
 - **Reduce choices**: Fewer buttons, fewer options, clearer path forward (paradox of choice is real)
 - **Smart defaults**: Make common choices automatic, only ask when necessary
 - **Inline actions**: Replace modal flows with inline editing where possible
-- **Remove steps**: Can signup be one step instead of three? Can checkout be simplified?
-- **Clear CTAs**: ONE obvious next step, not five competing actions
+- **Remove steps**: Can the flow lose a step?
+- **Clear next action**: ONE obvious next action, not five competing ones
 
 ### Content Simplification
 - **Shorter copy**: Cut every sentence in half, then do it again
@@ -108,4 +108,4 @@ If you removed features or options:
 - Consider if they need alternative access points
 - Note any user feedback to monitor
 
-When the cuts feel right, hand off to `{{command_prefix}}impeccable polish` for the final pass. As Antoine de Saint-Exupéry put it: "Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away."
+When the cuts feel right, hand off to `/impeccable polish` for the final pass. As Antoine de Saint-Exupéry put it: "Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away."

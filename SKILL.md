@@ -1,183 +1,92 @@
 ---
 name: impeccable
-description: "Comprehensive frontend design skill — 23 commands for shaping, auditing, polishing, and refining UI. Use when the user wants to design, redesign, shape, critique, audit, polish, clarify, distill, harden, optimize, adapt, animate, colorize, extract, or improve a frontend interface. Covers websites, landing pages, dashboards, product UI, app shells, components, forms, settings, onboarding, empty states. Handles UX review, visual hierarchy, info architecture, cognitive load, accessibility, performance, responsive behavior, theming, anti-patterns, typography, fonts, spacing, layout, alignment, color, motion, micro-interactions, UX copy, error states, edge cases, i18n, and reusable design systems/tokens. Also use for bland designs needing boldness, loud designs needing quiet, live browser iteration, or ambitious visual effects. Not for backend-only or non-UI tasks."
-author: Paul Bakaus (pbakaus/impeccable) — ported to Hermes Agent
+description: Frontend UI design, critique, audit, polish. Use when the user wants to design, redesign, shape, critique, audit, polish, clarify, distill, harden, optimize, adapt, animate, colorize, extract, or otherwise improve a frontend interface. Covers websites, landing pages, dashboards, product UI, app shells, components, forms, settings, onboarding, and empty states. Handles UX review, visual hierarchy, information architecture, cognitive load, accessibility, performance, responsive behavior, theming, anti-patterns, typography, fonts, spacing, layout, alignment, color, motion, micro-interactions, UX copy, error states, edge cases, i18n, and reusable design systems or tokens. Also use for bland designs that need to become bolder or more delightful, loud designs that should become quieter, live browser iteration on UI elements, or ambitious visual effects that should feel technically extraordinary. Not for backend-only or non-UI tasks.
+version: 4.5.0
 license: Apache 2.0
+author: Paul Bakaus (pbakaus/impeccable), Hermes packaging by DevvGwardo
 metadata:
   hermes:
     tags: [design, frontend, ui, ux, typography, accessibility, anti-patterns, css]
-    related_skills: [claude-design, sketch, pixel-art, popular-web-designs, nano-banana]
+    related_skills: [claude-design, popular-web-designs, sketch, pixel-art, nano-banana]
 ---
 
-# Impeccable — Frontend Design Skill
+This skill gives you the tools and permission to create design that earns to be called out-of-distribution craft: Whereas before, your design work would have been safe, timid and measured, you now approach every design task as an award-winning design director with impeccable understanding for what makes exceptional design work: production-grade code, peak creativity, a clear POV, deep understanding of the needs of the client and users, and exceptional craft.
 
-Designs and iterates production-grade frontend interfaces. Real working code, committed design choices, exceptional craft.
-
-Based on [pbakaus/impeccable](https://github.com/pbakaus/impeccable) (Apache 2.0), which builds on Anthropic's frontend-design skill.
+Core principles:
+- Go all out. No hedging, no shortcuts. The deliverable must be complete (except assets the user must provide).
+- Dream big and bold. Distinct, beautiful, outstanding and highly inspiring work.
+- Verify in bounded passes, not a loop, and the ceiling covers the whole cycle: screenshots, defect scans, micro-edits, and rebuilds alike. Build fully, inspect once with a batched round (desktop and mobile together on the web; the shipped device classes on a native platform), fix everything it shows in one batch, confirm with at most one more round, and stop polishing. Open-ended self-QA burns the user's money doing worse what the finish handoffs do better.
 
 ## Setup
 
-Before any design work or file edits:
+> **On Hermes:** `<skill-base-dir>` is the `skill_dir` field that `skill_view(name='impeccable')` returns. Use that absolute path for every `scripts/impeccable` command; the `.hermes/skills/impeccable/scripts` fallback below only holds for a project-local install. Open reference files with `skill_view(name='impeccable', file_path='reference/<name>.md')`. Hermes has no edit-hook surface, so the `hooks` command cannot auto-run the detector after edits.
 
-1. **Read context** — Check for PRODUCT.md / DESIGN.md in the project root. If PRODUCT.md is missing or placeholder (<200 chars), suggest the user run `impeccable:teach` first.
-2. **Identify register** — Every design task is **brand** (marketing, landing, campaign, portfolio: design IS the product) or **product** (app UI, admin, dashboard, tool: design SERVES the product). Identify before designing.
-3. **Load register reference** — Use the brand or product reference from this skill's reference files depending on the register.
+1. Run `<skill-base-dir>/scripts/impeccable context` once per session, where `<skill-base-dir>` is the directory that contains this SKILL.md (the skill folder, not a plugin root two levels above it); keep cwd at the user's project. That base directory resolves every `.hermes/skills/impeccable/scripts/impeccable <verb>` command in this skill and its references, and `.hermes/skills/impeccable/scripts` is the fallback only when the runtime reports no base directory. On a Windows shell without `sh`, call `.hermes/skills/impeccable/scripts/impeccable.cmd` instead. The launcher runs a self-contained binary that ships next to it or is downloaded once on first run; no Node or other runtime is required. Pass a named source file or route as `--target <path>`. It loads PRODUCT.md, DESIGN.md, the matching surface brief, and native-platform guidance when applicable; follow its directives and do not rerun it.
+2. Load the request's playbook: its Commands-table reference for an explicit/implied sub-command, or [reference/new-work.md](reference/new-work.md) for a new surface or replacement visual world. Inspect target and incumbent visual truth before editing. When the app cannot run, start with committed visual-regression goldens or screenshot fixtures; verify target and freshness against current tokens, CSS, components, or assets, resolve conflicts, and compare theme/variant captures.
+3. After resolving analysis and direction, read [reference/craft-floor.md](reference/craft-floor.md) immediately before any UI edit, including small refinements. It carries the quality floor, the absolute bans, and the reflexes no detector catches. Do not load it for planning-only work.
+
+**Launcher unavailable:** On refusal or failure, send a separate message **before the next tool call**: “Context loading did not run; I’ll read the existing project context directly.” Then read existing PRODUCT.md and DESIGN.md without inventing missing context, follow applicable steps 2–3, and continue through permitted tools. This applies to planning and editing; launcher failure alone does not block either.
+
+## How to design
+
+- **The brief wins.** Honor pinned aesthetics, eras, materials, fonts, and palettes even when they conflict with a saturated-pattern warning. Redirecting a clear brief toward your taste is failure.
+- **Refinement preserves; redesign replaces.** Refinement keeps the incumbent identity, behavior, copy, and everything outside scope. Ask before replacing factual copy or adding claims. Redesign keeps product truth, content, function, native affordances, and constraints, but treats the old look as evidence and anti-reference; choose a replacement world in new-work and replace DESIGN.md. Never split the difference into polish on the discarded look.
+- **Visual authority is evidence, not a filename.** Missing DESIGN.md alone does not make a project greenfield; new-work decides whether to preserve, expand, or replace the incumbent world.
+
+## Modes
+
+The mode names what the visitor's success looks like on this surface.
+
+- **Persuade:** the visitor decides and acts; design is the product. Landing pages, marketing, campaigns, pricing. Earn attention and action. Ship real imagery when the brief needs it; follow the committed world, not category habit.
+- **Operate:** the visitor completes a task. App UI, dashboards, editors, admin, settings, tools. Scanability, consistency, native expectations, and the real usage scene outrank expression. Brand lives in precise details.
+- **Read:** the visitor understands something. Docs, articles, guides, help, changelogs. Structure for comprehension, then make the reading experience worth staying in.
+- **Experience:** the visitor is inside the work itself. Portfolios, galleries, showcases. Let the artifact lead from the first viewport; the interface recedes.
+
+Choose the mode from the requested surface, not the product, and persist it only in that surface brief. A tool's landing page is still Persuade; a fashion house's documentation is still Read; a docs index is Read, not Persuade. See [new-work.md](reference/new-work.md) for new surfaces and [operate.md](reference/operate.md) for deeper Operate/Read guidance.
 
 ## Commands
 
-When the user invokes a specific impeccable command (e.g. "audit this page", "polish the checkout"), follow the pattern: `impeccable:<command> [target]`. Each command has a reference file in this skill's reference directory.
+| Command | Category | Description | Reference |
+|---|---|---|---|
+| `craft [feature]` | Build | Deprecated alias for an ordinary new-work request | [reference/craft.md](reference/craft.md) |
+| `shape [feature]` | Build | Plan UX/UI before writing code | [reference/shape.md](reference/shape.md) |
+| `init` | Build | Capture durable product context in PRODUCT.md | [reference/init.md](reference/init.md) |
+| `document` | Build | Generate DESIGN.md from existing project code | [reference/document.md](reference/document.md) |
+| `extract [target]` | Build | Pull reusable tokens and components into design system | [reference/extract.md](reference/extract.md) |
+| `critique [target]` | Evaluate | UX design review with heuristic scoring | [reference/critique.md](reference/critique.md) |
+| `audit [target]` | Evaluate | Technical quality checks (a11y, perf, responsive) | [reference/audit.md](reference/audit.md) · native: [reference/audit.native.md](reference/audit.native.md) |
+| `polish [target]` | Refine | Final quality pass before shipping | [reference/polish.md](reference/polish.md) |
+| `bolder [target]` | Refine | Amplify safe or bland designs | [reference/bolder.md](reference/bolder.md) |
+| `quieter [target]` | Refine | Tone down aggressive or overstimulating designs | [reference/quieter.md](reference/quieter.md) |
+| `distill [target]` | Refine | Strip to essence, remove complexity | [reference/distill.md](reference/distill.md) |
+| `harden [target]` | Refine | Production-ready: errors, i18n, edge cases | [reference/harden.md](reference/harden.md) |
+| `onboard [target]` | Refine | Design first-run flows, empty states, activation | [reference/onboard.md](reference/onboard.md) |
+| `animate [target]` | Enhance | Add purposeful animations and motion | [reference/animate.md](reference/animate.md) |
+| `colorize [target]` | Enhance | Add strategic color to monochromatic UIs | [reference/colorize.md](reference/colorize.md) |
+| `typeset [target]` | Enhance | Improve typography hierarchy and fonts | [reference/typeset.md](reference/typeset.md) |
+| `layout [target]` | Enhance | Fix spacing, rhythm, and visual hierarchy | [reference/layout.md](reference/layout.md) |
+| `delight [target]` | Enhance | Add personality and memorable touches | [reference/delight.md](reference/delight.md) |
+| `overdrive [target]` | Enhance | Push past conventional limits | [reference/overdrive.md](reference/overdrive.md) |
+| `clarify [target]` | Fix | Improve UX copy, labels, and error messages | [reference/clarify.md](reference/clarify.md) |
+| `adapt [target]` | Fix | Adapt for different devices and screen sizes | [reference/adapt.md](reference/adapt.md) · native: [reference/adapt.native.md](reference/adapt.native.md) |
+| `optimize [target]` | Fix | Diagnose and fix UI performance | [reference/optimize.md](reference/optimize.md) |
+| `live` | Iterate | Visual variant mode: pick elements in the browser, iterate on alternatives | [reference/live.md](reference/live.md) |
+| `generate [n] [action] [element]` | Iterate | Variants, versions, or alternatives of a named element to choose from in the live browser; no manual picking | [reference/generate.md](reference/generate.md) |
 
-| Command | Category | Description |
-|---------|----------|-------------|
-| `impeccable:craft [feature]` | Build | Full shape-then-build flow with visual iteration |
-| `impeccable:teach` | Build | One-time setup: gather design context, write PRODUCT.md and DESIGN.md |
-| `impeccable:document` | Build | Generate DESIGN.md from existing project code |
-| `impeccable:extract [target]` | Build | Pull reusable components and tokens into the design system |
-| `impeccable:shape [feature]` | Build | Plan UX/UI before writing code |
-| `impeccable:critique [target]` | Evaluate | UX design review: hierarchy, clarity, emotional resonance |
-| `impeccable:audit [target]` | Evaluate | Run technical quality checks (a11y, performance, responsive) |
-| `impeccable:polish [target]` | Refine | Final pass, design system alignment, and shipping readiness |
-| `impeccable:bolder [target]` | Refine | Amplify boring designs |
-| `impeccable:quieter [target]` | Refine | Tone down overly bold designs |
-| `impeccable:distill [target]` | Refine | Strip to essence |
-| `impeccable:harden [target]` | Refine | Error handling, i18n, text overflow, edge cases |
-| `impeccable:onboard [target]` | Refine | First-run flows, empty states, activation paths |
-| `impeccable:animate [target]` | Enhance | Add purposeful motion |
-| `impeccable:colorize [target]` | Enhance | Introduce strategic color |
-| `impeccable:typeset [target]` | Enhance | Fix font choices, hierarchy, sizing |
-| `impeccable:layout [target]` | Enhance | Fix layout, spacing, visual rhythm |
-| `impeccable:delight [target]` | Enhance | Add moments of joy |
-| `impeccable:overdrive [target]` | Enhance | Add technically extraordinary effects |
-| `impeccable:clarify [target]` | Fix | Improve unclear UX copy |
-| `impeccable:adapt [target]` | Fix | Adapt for different devices |
-| `impeccable:optimize [target]` | Fix | Performance improvements |
-| `impeccable:live` | Iterate | Visual variant mode: iterate on elements in the browser |
+Routing:
 
-### Routing
+- **No argument:** read [routing.md](reference/routing.md) and present its context-aware menu; never auto-run a command.
+- **Explicit or clearly implied request to run a command:** load its reference (native variant on native platforms) and follow it. Ask once if two commands fit.
+- **Workflow or command-selection question:** read [Workflow questions](reference/routing.md#workflow-questions).
+- **Otherwise:** treat the request as general design work. Missing PRODUCT.md routes a new surface or replacement world through init, then new-work; a narrow refinement of existing code proceeds on the incumbent implementation as `impeccable context` directs, offering init afterward rather than blocking on it.
+- `teach` aliases `init`. `craft` is a deprecated alias for ordinary new-work and adds nothing. `shape` owns task discovery, then enters new-work only for visual-world and surface-concept decisions.
 
-- **No target specified**: Render the command table grouped by category, ask what they'd like to do.
-- **Command matches**: Load its reference file from this skill's reference/ directory and follow its instructions.
-- **No match but design-related**: Apply the shared design laws and register reference directly.
+After init writes PRODUCT.md, resume without rerunning `impeccable context`; init loads the native platform reference itself when the platform it recorded is `ios`, `android`, or `adaptive`.
 
-## Shared Design Laws
+**Pin / Unpin:** `.hermes/skills/impeccable/scripts/impeccable pin <pin|unpin> <command>` creates or removes a standalone `/<command>` shortcut. Report the script's result concisely; relay stderr verbatim on error.
 
-Apply to every design, both registers. Match implementation complexity to the aesthetic vision. Vary across projects; never converge on the same choices.
+**Hooks:** `/impeccable hooks <on|off|status|ignore-rule|ignore-file|ignore-value|reset>` manages the design detector hook for this project (auto-runs the detector after UI file edits and surfaces findings). Load [reference/hooks.md](reference/hooks.md) when the user invokes it with any argument.
 
-### Color
+**Doctor:** `/impeccable doctor` reports and repairs drift between this project's Impeccable artifacts (PRODUCT.md, DESIGN.md and its sidecar, config, surface briefs, the hook) and what this version reads. Load [reference/doctor.md](reference/doctor.md) when the user invokes it, or when they ask what is out of date, stale, or needs refreshing. A `CONTEXT_STALE` directive in Setup's output is the cheap subset of the same report; act on it there per its own instructions rather than running doctor unasked.
 
-- Use OKLCH. Reduce chroma as lightness approaches 0 or 100; high chroma at extremes looks garish.
-- Never use `#000` or `#fff`. Tint every neutral toward the brand hue (chroma 0.005–0.01 is enough).
-- Pick a **color strategy** before picking colors. Four steps on the commitment axis:
-  - **Restrained**: tinted neutrals + one accent ≤10%. Product default; brand minimalism.
-  - **Committed**: one saturated color carries 30–60% of the surface. Brand default for identity-driven pages.
-  - **Full palette**: 3–4 named roles, each used deliberately. Brand campaigns; product data viz.
-  - **Drenched**: the surface IS the color. Brand heroes, campaign pages.
-- The "one accent ≤10%" rule is Restrained only. Committed / Full Palette / Drenched exceed it on purpose.
-
-### Theme
-
-Dark vs. light is never a default. Not dark "because tools look cool dark." Not light "to be safe."
-
-Before choosing, write one sentence of physical scene: who uses this, where, under what ambient light, in what mood. If the sentence doesn't force the answer, it's not concrete enough. Add detail until it does.
-
-"Observability dashboard" does not force an answer. "SRE glancing at incident severity on a 27-inch monitor at 2am in a dim room" does.
-
-### Typography
-
-- Cap body line length at 65–75ch.
-- Hierarchy through scale + weight contrast (≥1.25 ratio between steps). Avoid flat scales.
-
-### Layout
-
-- Vary spacing for rhythm. Same padding everywhere is monotony.
-- Cards are the lazy answer. Use them only when they're truly the best affordance. Nested cards are always wrong.
-- Don't wrap everything in a container. Most things don't need one.
-
-### Motion
-
-- Don't animate CSS layout properties.
-- Ease out with exponential curves (ease-out-quart / quint / expo). No bounce, no elastic.
-
-### Absolute Bans (Anti-Patterns)
-
-Match-and-refuse. If you're about to write any of these, rewrite with different structure.
-
-- **Side-stripe borders.** `border-left` or `border-right` >1px as a colored accent on cards, list items, callouts, or alerts. Use full borders, background tints, leading numbers/icons, or nothing.
-- **Gradient text.** `background-clip: text` + gradient. Decorative, never meaningful. Use single solid color. Emphasis via weight or size.
-- **Glassmorphism as default.** Blurs and glass cards used decoratively. Rare and purposeful, or nothing.
-- **The hero-metric template.** Big number, small label, supporting stats, gradient accent. SaaS cliché.
-- **Identical card grids.** Same-sized cards with icon + heading + text, repeated endlessly.
-- **Modal as first thought.** Modals are usually laziness. Exhaust inline/progressive alternatives first.
-
-### Copy
-
-- Every word earns its place. No restated headings, no intros that repeat the title.
-- **No em dashes.** Use commas, colons, semicolons, periods, or parentheses.
-
-### The AI Slop Test
-
-If someone could look at this interface and say "AI made that" without doubt, it's failed.
-
-**Category-reflex check** — two altitudes:
-- **First-order:** if someone could guess the theme + palette from the category alone ("observability → dark blue", "healthcare → white + teal", "finance → navy + gold", "crypto → neon on black"), it's the training-data reflex. Rework the scene sentence and color strategy until the answer isn't obvious from the domain.
-- **Second-order:** if someone could guess the aesthetic family from category-plus-anti-references ("AI workflow tool that's not SaaS-cream → editorial-typographic", "fintech that's not navy-and-gold → terminal-native dark mode"), it's the trap one tier deeper. The first reflex was avoided; the second wasn't. Rework until both answers are not obvious.
-
-## Reference Files
-
-Detailed reference files are available in this skill's reference/ directory for each command and design domain. Load them with `skill_view(name='impeccable', file_path='reference/<name>.md')`.
-
-Key design domain references (load for deep dives):
-- `reference/brand.md` — Brand register: marketing, landing, campaign pages
-- `reference/product.md` — Product register: app UI, dashboards, tools
-- `reference/typography.md` — Type systems, font pairing, modular scales, OpenType
-- `reference/color-and-contrast.md` — OKLCH, tinted neutrals, dark mode, accessibility
-- `reference/spatial-design.md` — Spacing systems, grids, visual hierarchy
-- `reference/motion-design.md` — Easing curves, staggering, reduced motion
-- `reference/interaction-design.md` — Forms, focus states, loading patterns
-- `reference/responsive-design.md` — Mobile-first, fluid design, container queries
-- `reference/ux-writing.md` — Button labels, error messages, empty states
-- `reference/cognitive-load.md` — Reduce cognitive overhead in interfaces
-- `reference/heuristics-scoring.md` — Nielsen-style heuristic evaluation rubric
-
-Command-specific references (load on matching command):
-- `reference/craft.md` — Full shape-then-build flow
-- `reference/shape.md` — UX/UI planning before code
-- `reference/teach.md` — Setting up PRODUCT.md and DESIGN.md
-- `reference/document.md` — Generating DESIGN.md from existing code
-- `reference/extract.md` — Pulling tokens into design system
-- `reference/critique.md` — UX design review
-- `reference/audit.md` — Technical quality checks
-- `reference/polish.md` — Final quality pass
-- `reference/bolder.md` — Amplifying safe designs
-- `reference/quieter.md` — Toning down loud designs
-- `reference/distill.md` — Stripping to essence
-- `reference/harden.md` — Production readiness
-- `reference/onboard.md` — First-run flows and empty states
-- `reference/animate.md` — Purposeful animation
-- `reference/colorize.md` — Strategic color introduction
-- `reference/typeset.md` — Typography fixes
-- `reference/layout.md` — Layout and spacing fixes
-- `reference/delight.md` — Personality and memorable touches
-- `reference/overdrive.md` — Pushing past conventional limits
-- `reference/clarify.md` — UX copy improvements
-- `reference/adapt.md` — Device adaptation
-- `reference/optimize.md` — UI performance
-- `reference/live.md` — Browser variant iteration
-
-## CLI Tool
-
-Impeccable also ships a standalone CLI for detecting UI anti-patterns without an AI harness:
-
-```bash
-npx impeccable detect src/                   # scan a directory
-npx impeccable detect index.html             # scan an HTML file
-npx impeccable detect https://example.com    # scan a URL (requires Puppeteer)
-npx impeccable detect --fast --json .        # regex-only, JSON output
-```
-
-Scans HTML, CSS, JSX, TSX, Vue, Svelte files for 25+ anti-patterns. Exit code 0 = clean, 2 = issues found. Requires Node.js 18+.
-
-## Source
-
-Original: [github.com/pbakaus/impeccable](https://github.com/pbakaus/impeccable)
-Website: [impeccable.style](https://impeccable.style)
+**Never repair drift as a side effect of a design task.** A `CONTEXT_STALE` finding is reported, not acted on, unless the user asks. The one exception is a finding marked `auto`, which the next write to that file performs anyway.
