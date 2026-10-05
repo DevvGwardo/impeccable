@@ -12,7 +12,7 @@ This repo tracks upstream's generated Hermes build release by release (see [`UPS
 
 - `metadata.hermes` tags and related skills.
 - A description that leads with its routing signal, because Hermes' system-prompt skill index keeps only the first 57 characters.
-- A setup note telling the agent to resolve `scripts/impeccable` from the `skill_dir` that `skill_view` returns, so global installs work (upstream's fallback path assumes a project-local install), and to call it through `sh`, since hub installs on Hermes releases before hermes-agent#133316 drop its executable bit.
+- A setup note telling the agent to resolve `scripts/impeccable` from the `skill_dir` that `skill_view` returns, so global installs work (upstream's fallback path assumes a project-local install), and to call it through `sh`, since Hermes hub installs drop its executable bit.
 
 ## Install
 
@@ -22,13 +22,7 @@ git clone https://github.com/DevvGwardo/impeccable /tmp/impeccable
 mkdir -p "$dest" && cp -R /tmp/impeccable/{SKILL.md,reference,scripts} "$dest/"
 ```
 
-Use the manual copy for now. On current Hermes releases, every hub form of this repo's identifier (`DevvGwardo/impeccable/`, `github/...`, the GitHub URL) is captured by Hermes' official `impeccable` catalog entry and installs upstream's bundle without this overlay. Hub installs also drop the launcher's executable bit. Both are fixed upstream in [NousResearch/hermes-agent#133317](https://github.com/NousResearch/hermes-agent/pull/133317) and [#133316](https://github.com/NousResearch/hermes-agent/pull/133316); once they ship, this works too:
-
-```bash
-hermes skills install DevvGwardo/impeccable/ --category creative
-```
-
-The trailing slash matters: it tells Hermes the skill sits at the repo root.
+Use the manual copy. Hermes' official `impeccable` catalog entry captures every hub form of this repo's identifier (`DevvGwardo/impeccable/`, `github/...`, the GitHub URL), so `hermes skills install` gets upstream's bundle without this overlay. Hub installs also drop the launcher's executable bit.
 
 `hermes skills install impeccable` installs upstream's Hermes bundle from pbakaus/impeccable directly, without the overlay described above. So does upstream's own installer: `npx impeccable install --providers=hermes --scope=global`.
 

@@ -15,7 +15,7 @@ metadata:
 """
 
 SETUP_NOTE = """\
-> **On Hermes:** `<skill-base-dir>` is the `skill_dir` field that `skill_view(name='impeccable')` returns. Use that absolute path for every `scripts/impeccable` command, and invoke it through `sh` (`sh <skill_dir>/scripts/impeccable context`) because hub installs on older Hermes releases drop the launcher's executable bit; the `.hermes/skills/impeccable/scripts` fallback below only holds for a project-local install. Open reference files with `skill_view(name='impeccable', file_path='reference/<name>.md')`. Hermes has no edit-hook surface, so the `hooks` command cannot auto-run the detector after edits.
+> **On Hermes:** `<skill-base-dir>` is the `skill_dir` field that `skill_view(name='impeccable')` returns. Use that absolute path for every `scripts/impeccable` command, and invoke it through `sh` (`sh <skill_dir>/scripts/impeccable context`) because Hermes hub installs drop the launcher's executable bit; the `.hermes/skills/impeccable/scripts` fallback below only holds for a project-local install. Open reference files with `skill_view(name='impeccable', file_path='reference/<name>.md')`. Hermes has no edit-hook surface, so the `hooks` command cannot auto-run the detector after edits.
 """
 
 # Hermes' system-prompt skill index keeps only the first 57 chars of a description
