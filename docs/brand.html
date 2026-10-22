@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Impeccable for Hermes Agent · Visual guide</title>
+  <meta name="description" content="The Impeccable for Hermes Agent visual identity, design workflow, and four design modes.">
+  <link rel="icon" href="images/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="brand.css">
+  <style>
+    .page { width: min(1200px, calc(100% - 96px)); margin: 0 auto; }
+    .masthead { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 32px 0; border-bottom: 1px solid var(--ink); }
+    .signature { display: flex; gap: 12px; align-items: center; color: var(--ink); text-decoration: none; }
+    .signature img { width: 32px; height: 32px; }
+    .signature strong { font-family: var(--serif); font-size: 26px; font-weight: 400; letter-spacing: -1px; }
+    nav { display: flex; gap: 24px; }
+    nav a { font-size: 13px; color: var(--ink); }
+    .intro { display: grid; grid-template-columns: 1.5fr 1fr; gap: 64px; padding: 64px 0 48px; align-items: end; }
+    h1, h2 { font-family: var(--serif); font-weight: 400; letter-spacing: -.055em; }
+    h1 { font-size: clamp(46px, 7vw, 88px); line-height: 1.04; margin: 12px 0 0; }
+    h1 em { color: var(--red); }
+    .intro p { font-size: 17px; line-height: 1.7; margin: 0; }
+    .intro .eyebrow { font-size: 11px; color: var(--red); }
+    .hero { display: block; width: 100%; height: auto; border: 1px solid var(--line); }
+    section { scroll-margin-top: 24px; margin-top: 80px; }
+    .section-heading { display: grid; grid-template-columns: 60px 1fr 1fr; align-items: baseline; gap: 16px; margin-bottom: 24px; border-top: 1px solid var(--ink); padding-top: 20px; }
+    .number { color: var(--red); font-family: var(--serif); font-size: 22px; }
+    h2 { font-size: clamp(32px, 4vw, 48px); line-height: 1.1; margin: 0; }
+    .section-heading p { margin: 0; font-size: 14px; line-height: 1.7; color: var(--muted); }
+    figure { margin: 0; }
+    figure > a { display: block; }
+    figure img { display: block; width: 100%; height: auto; border: 1px solid var(--line); }
+    figcaption { display: flex; justify-content: space-between; gap: 20px; margin-top: 14px; font-size: 12px; line-height: 1.6; color: var(--muted); }
+    .workflow-text { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; padding: 0; list-style: none; margin: 32px 0 0; }
+    .workflow-text strong { display: block; margin-bottom: 8px; font-size: 15px; }
+    .workflow-text li { font-size: 13px; line-height: 1.65; color: var(--muted); }
+    code { color: var(--ink); font-size: .95em; }
+    .palette { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); }
+    .swatch { padding: 24px; min-height: 160px; display: flex; flex-direction: column; justify-content: space-between; gap: 24px; }
+    .swatch strong { font-family: var(--serif); font-size: 26px; font-weight: 400; }
+    .swatch span { font-size: 12px; letter-spacing: .05em; }
+    .swatch.ink { background: var(--ink); color: var(--paper); }
+    .swatch.red { background: var(--red); color: var(--paper); }
+    .swatch.olive { background: var(--olive); color: var(--paper); }
+    .brand-note { max-width: 680px; font-size: 15px; line-height: 1.8; color: var(--muted); margin: 24px 0 0; }
+    footer { border-top: 1px solid var(--ink); margin-top: 80px; padding: 24px 0 36px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; font-size: 12px; line-height: 1.8; color: var(--muted); }
+    @media (max-width: 700px) {
+      .page { width: calc(100% - 40px); }
+      .masthead { padding: 22px 0; flex-wrap: wrap; gap: 16px; }
+      nav { gap: 20px; flex-wrap: wrap; flex-basis: 100%; }
+      nav a { font-size: 12px; }
+      .intro { grid-template-columns: 1fr; gap: 24px; padding: 40px 0 32px; }
+      .intro p { font-size: 15px; }
+      section { margin-top: 48px; }
+      .section-heading { grid-template-columns: 28px 1fr; gap: 12px; }
+      .section-heading p { grid-column: 2; }
+      .workflow-text { grid-template-columns: 1fr 1fr; gap: 20px; }
+      .palette { grid-template-columns: 1fr 1fr; }
+      .swatch { min-height: 140px; padding: 20px; }
+      figcaption { flex-direction: column; gap: 4px; }
+      footer { margin-top: 48px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="masthead">
+      <a class="signature" href="../README.md"><img src="images/mark.svg" alt=""><strong>Impeccable.</strong></a>
+      <nav aria-label="Visual guide"><a href="#workflow">Workflow</a><a href="#modes">Design modes</a><a href="#identity">Identity</a></nav>
+    </header>
+    <main>
+      <div class="intro">
+        <div><span class="eyebrow">A frontend design skill for Hermes Agent</span><h1>Good taste.<br><em>Working code.</em></h1></div>
+        <p>Design is more than a finishing pass. Set the context, shape the experience, and refine the details with Impeccable. Built on Paul Bakaus’s upstream skill, packaged for Hermes Agent.</p>
+      </div>
+      <a href="banner.png" aria-label="Open the full-size Impeccable brand banner"><img class="hero" src="banner.png" width="1600" height="800" alt="Impeccable. Good taste. Working code. A frontend design skill for Hermes Agent. Shape, critique, refine."></a>
+      <section id="workflow" aria-labelledby="workflow-title">
+        <div class="section-heading"><span class="number">01</span><h2 id="workflow-title">From brief to better UI.</h2><p>An example workflow, not an automatic pipeline. Ask naturally, or choose the pass your project needs.</p></div>
+        <figure>
+          <a href="images/workflow.png" aria-label="Open the full-size workflow infographic"><img src="images/workflow.png" width="1586" height="992" alt="An example Impeccable workflow: set context with init and document, shape the work with shape, evaluate with critique and audit, then refine with polish, adapt, and optimize. Iterate as needed."></a>
+          <figcaption><span>Context → shape → evaluate → refine.</span><a href="../README.md#use">Explore the commands</a></figcaption>
+        </figure>
+        <ol class="workflow-text">
+          <li><strong>Set context</strong><code>init</code> captures product context in PRODUCT.md. <code>document</code> derives DESIGN.md from existing code.</li>
+          <li><strong>Shape the work</strong><code>shape</code> plans the UX and UI before implementation.</li>
+          <li><strong>Evaluate</strong><code>critique</code> reviews UX. <code>audit</code> checks accessibility, performance, and responsive behavior.</li>
+          <li><strong>Refine</strong>Choose focused passes such as <code>polish</code>, <code>adapt</code>, or <code>optimize</code>, then verify the result.</li>
+        </ol>
+      </section>
+      <section id="modes" aria-labelledby="modes-title">
+        <div class="section-heading"><span class="number">02</span><h2 id="modes-title">Purpose sets the direction.</h2><p>Persuade helps people decide. Operate helps them act. Read helps them understand. Experience lets the work lead.</p></div>
+        <figure>
+          <a href="images/design-modes.png" aria-label="Open the full-size design modes infographic"><img src="images/design-modes.png" width="1586" height="992" alt="Four design modes: Persuade for landing pages, marketing, and pricing; Operate for dashboards, tools, and app UI; Read for docs, guides, and articles; Experience for portfolios, galleries, and showcases."></a>
+          <figcaption><span>Choose the mode by the visitor’s goal, not the product category.</span><span>Conceptual illustrations, not captured product output.</span></figcaption>
+        </figure>
+      </section>
+      <section id="identity" aria-labelledby="identity-title">
+        <div class="section-heading"><span class="number">03</span><h2 id="identity-title">Less noise. More intent.</h2><p>Warm paper, precise rules, expressive serif type, and one decisive accent.</p></div>
+        <div class="palette" role="group" aria-label="Brand color palette">
+          <div class="swatch"><strong>Paper</strong><span>#F3EFE5</span></div>
+          <div class="swatch ink"><strong>Ink</strong><span>#20221E</span></div>
+          <div class="swatch red"><strong>Vermilion</strong><span>#B93927</span></div>
+          <div class="swatch olive"><strong>Olive</strong><span>#666B45</span></div>
+        </div>
+        <p class="brand-note">The bracketed “i” mark belongs to this package’s presentation, not to Hermes or upstream Impeccable. The generated imagery illustrates design concepts, not benchmarked results. See the <a href="BRAND.md">asset and rendering guide</a> for sources and usage.</p>
+      </section>
+    </main>
+    <footer><span>Impeccable by Paul Bakaus · Hermes packaging by DevvGwardo</span><span><a href="../README.md">Install &amp; use</a> · <a href="../NOTICE.md">Credits &amp; notices</a></span></footer>
+  </div>
+</body>
+</html>

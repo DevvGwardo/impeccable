@@ -1,18 +1,16 @@
 # Impeccable for Hermes Agent
 
 <p align="center">
-  <img src="docs/banner.png" alt="Impeccable — Frontend Design Skill" width="95%">
+  <img src="docs/banner.png" alt="Impeccable. Good taste. Working code. A frontend design skill for Hermes Agent. Shape, critique, refine." width="100%">
 </p>
 
-<!-- docs/banner.png is rendered from docs/banner.html with headless Chrome at 1280x640. -->
+<!-- docs/banner.png is rendered from docs/banner.html at 1600x800. See docs/BRAND.md. -->
 
-[pbakaus/impeccable](https://github.com/pbakaus/impeccable), the frontend design skill, packaged for [Hermes Agent](https://github.com/NousResearch/hermes-agent). It shapes, critiques, audits, polishes and refines UI: real working code, committed design choices, and a mechanical anti-pattern detector.
+**Good taste. Working code.**
 
-This repo tracks upstream's generated Hermes build release by release (see [`UPSTREAM`](UPSTREAM) for the pinned tag) and adds a small Hermes overlay on top:
+[Impeccable](https://github.com/pbakaus/impeccable), Paul Bakaus's frontend design skill, packaged for [Hermes Agent](https://github.com/NousResearch/hermes-agent). Shape the experience, critique the decisions, and refine the details with real working code and a mechanical anti-pattern detector.
 
-- `metadata.hermes` tags and related skills.
-- A description that leads with its routing signal, because Hermes' system-prompt skill index keeps only the first 57 characters.
-- A setup note telling the agent to resolve `scripts/impeccable` from the `skill_dir` that `skill_view` returns, so global installs work (upstream's fallback path assumes a project-local install), and to call it through `sh`, since Hermes hub installs drop its executable bit.
+[Install](#install) · [How it works](#how-it-works) · [Commands](#use) · [Design modes](#four-modes-one-design-skill) · [Hermes packaging](#what-this-package-adds)
 
 ## Install
 
@@ -30,9 +28,33 @@ The first command that needs the engine downloads a self-contained binary for yo
 
 A project-scoped install goes in `<project>/.hermes/skills/impeccable/` instead; run `hermes skills trust` once from the project root, since Hermes gates project-local skills behind a per-repo trust decision.
 
+## How it works
+
+<p align="center">
+  <img src="docs/images/workflow.png" alt="An example Impeccable workflow: set context with init and document; shape the work with shape; evaluate with critique and audit; refine with polish, adapt, and optimize. Iterate as needed." width="100%">
+</p>
+
+Start with the pass your project needs. This is an example workflow, not an automatic pipeline:
+
+1. **Set context.** `init` captures product context in PRODUCT.md. For existing projects, `document` generates DESIGN.md from the code.
+2. **Shape the work.** `shape` plans UX/UI before implementation.
+3. **Evaluate.** `critique` reviews UX decisions. `audit` checks accessibility, performance, and responsive behavior.
+4. **Refine and verify.** Choose focused passes such as `polish`, `adapt`, or `optimize`, then check the result.
+
 ## Use
 
 Ask for design work in plain language, or name a command: `/impeccable audit the checkout page`. With no argument the skill shows a menu based on your project's state.
+
+For example:
+
+```text
+Shape an onboarding flow for a first-time user.
+Critique the hierarchy on this dashboard.
+Audit the checkout page for accessibility and responsive issues.
+Polish this settings screen before shipping.
+```
+
+### Command reference
 
 | Command | Category | Description |
 |---|---|---|
@@ -53,13 +75,38 @@ Ask for design work in plain language, or name a command: `/impeccable audit the
 | `generate [n] [action] [element]` | Iterate | Variants of a named element in the live browser |
 | `doctor` | Maintain | Report and repair drift in PRODUCT.md, DESIGN.md and config |
 
-Surfaces are designed in one of four modes: **Persuade** (landing, marketing, pricing), **Operate** (app UI, dashboards, tools), **Read** (docs, articles) and **Experience** (portfolios, galleries). iOS and Android projects get native-platform references.
+## Four modes, one design skill
+
+<p align="center">
+  <img src="docs/images/design-modes.png" alt="Four design modes: Persuade for landing pages, marketing, and pricing; Operate for dashboards, tools, and app UI; Read for docs, guides, and articles; Experience for portfolios, galleries, and showcases." width="100%">
+</p>
+
+The mode follows what the visitor needs to do, not the product category:
+
+| Mode | Visitor's goal | Typical surfaces |
+|---|---|---|
+| **Persuade** | Decide and act | Landing pages, marketing, pricing |
+| **Operate** | Complete a task | App UI, dashboards, tools |
+| **Read** | Understand something | Docs, guides, articles |
+| **Experience** | Explore the work itself | Portfolios, galleries, showcases |
+
+iOS and Android projects get native-platform references. The images above are conceptual illustrations, not captured product output.
+
+### Check the details
 
 Hermes has no edit-hook surface, so the `hooks` command (auto-running the detector after each UI edit) does nothing here. The skill runs the detector itself at the end of a change, and you can run it by hand:
 
 ```bash
 sh ~/.hermes/skills/creative/impeccable/scripts/impeccable detect --json src/
 ```
+
+## What this package adds
+
+This repo tracks upstream's generated Hermes build release by release (see [`UPSTREAM`](UPSTREAM) for the pinned tag) and adds a small Hermes overlay on top:
+
+- `metadata.hermes` tags and related skills.
+- A description that leads with its routing signal, because Hermes' system-prompt skill index keeps only the first 57 characters.
+- A setup note telling the agent to resolve `scripts/impeccable` from the `skill_dir` that `skill_view` returns, so global installs work (upstream's fallback path assumes a project-local install), and to call it through `sh`, since Hermes hub installs drop its executable bit.
 
 ## Updating
 
@@ -79,3 +126,5 @@ Apache 2.0, same as upstream. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
 - [Paul Bakaus](https://github.com/pbakaus): Impeccable
 - [Anthropic](https://www.anthropic.com): the frontend-design skill it builds on
 - [Nous Research](https://nousresearch.com): Hermes Agent
+
+Brand assets, editable sources, and a local visual preview live in [`docs/`](docs/BRAND.md). The conceptual illustrations and infographics are AI-generated; the banner typography and layout are HTML/CSS.
