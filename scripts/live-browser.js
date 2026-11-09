@@ -62,6 +62,10 @@
   const Z = { highlight: 100001, bar: 100005, picker: 100007, toast: 100010 };
   const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'; // ease-out-quint
   const PREFIX = 'impeccable-live';
+  // A removed element stays in the DOM, hidden by this attribute, so a
+  // framework that owns the node never reconciles against a missing child;
+  // Undo and Discard restore it by dropping the attribute.
+  const REMOVED_ATTR = 'data-impeccable-removed';
   const IMPECCABLE_COMMAND = (window.__IMPECCABLE_COMMAND_PREFIX__ || '/') + 'impeccable';
   const PICK_CURSOR_STYLE_ID = PREFIX + '-pick-cursor-style';
   const MANUAL_APPLY_STATE_TTL_MS = 15 * 60 * 1000;
@@ -974,6 +978,10 @@
 
   function stripManualEditRuntimeState(root) {
     if (!root || root.nodeType !== 1) return;
+    // A removed element is gone as far as the agent is concerned: drop it from
+    // the clone rather than describing a hidden child it might regenerate.
+    for (const removed of root.querySelectorAll('[' + REMOVED_ATTR + ']')) removed.remove();
+    root.removeAttribute(REMOVED_ATTR);
     unwrapMixedContentTextNodes(root);
     const nodes = [root, ...root.querySelectorAll('[data-impeccable-editable], [data-impeccable-original-text], [data-impeccable-text-wrap]')];
     for (const node of nodes) {
@@ -3130,11 +3138,12 @@
   let paramsPanelBody = null;   // grid holding the knob cells
   let paramsCurrentValues = {}; // {paramId: value} - mirror of the visible variant's live values
   let tuneOpen = false;         // whether the Tune popover is open right now
-  // Tune values a saved session carried across a reload: {sessionId, variant,
-  // values}. Cycling refreshes of that session and variant restore them (a
-  // resume refreshes more than once); a refresh for any other variant, or a
-  // knob edit, drops them.
-  let restoredParamValues = null;
+  // Tune values to keep for one session and variant: {sessionId, variant,
+  // values}. A reload restores them from the saved session and every knob
+  // edit replaces them. Cycling refreshes of that session and variant keep
+  // them (a resume, or the last progressive variant landing, refreshes more
+  // than once); a refresh for any other variant drops them.
+  let keptParamValues = null;
 
   // Theme-aware Tune popover. Appears as a drawer that slides out from the
   // contextual bar's bar-facing edge (below if the bar sits below the
@@ -3276,21 +3285,21 @@
     if (!values || typeof values !== 'object' || Array.isArray(values)) return;
     if (Object.keys(values).length === 0) return;
     const variant = Number(saved.visible != null ? saved.visible : saved.visibleVariant) || 0;
-    restoredParamValues = { sessionId: saved.id || null, variant, values: { ...values } };
+    keptParamValues = { sessionId: saved.id || null, variant, values: { ...values } };
   }
 
-  function restoredParamValuesForVisibleVariant() {
-    const restored = restoredParamValues;
-    if (!restored) return null;
-    if (restored.sessionId === currentSessionId && restored.variant === visibleVariant) return restored.values;
-    restoredParamValues = null;
+  function keptParamValuesForVisibleVariant() {
+    const kept = keptParamValues;
+    if (!kept) return null;
+    if (kept.sessionId === currentSessionId && kept.variant === visibleVariant) return kept.values;
+    keptParamValues = null;
     return null;
   }
 
   // The local save is what a reload resumes from, so an edit is saved there
   // as well as checkpointed to the server.
   function noteParamEdited() {
-    restoredParamValues = null;
+    keptParamValues = { sessionId: currentSessionId, variant: visibleVariant, values: { ...paramsCurrentValues } };
     saveSession();
     queueCheckpoint('param_changed');
   }
@@ -3855,6 +3864,156 @@
     return out;
   }
 
+  function ensureRemovedElementStyle() {
+    if (document.getElementById(PREFIX + '-removed-style')) return;
+    const style = document.createElement('style');
+    style.id = PREFIX + '-removed-style';
+    style.textContent = '[' + REMOVED_ATTR + '] { display: none !important; }';
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  // The text the applier and the verifier look for in source: a text leaf
+  // (preferring one free of characters source tends to entity-encode, so the
+  // literal search finds it), else the attribute that names the element, else
+  // its id.
+  function removalOriginalText(el) {
+    const leaves = collectEditableTextRows(el, { isOwn: own })
+      .map((row) => normalizeManualContextText(row.text))
+      .filter(Boolean);
+    const plain = leaves.find((text) => !/[&<>"]/.test(text));
+    if (plain || leaves.length) return (plain || leaves[0]).slice(0, 200);
+    for (const attr of ['alt', 'aria-label', 'title']) {
+      const value = normalizeManualContextText(el.getAttribute?.(attr));
+      if (value) return value.slice(0, 200);
+    }
+    for (const attr of ['src', 'href']) {
+      const value = String(el.getAttribute?.(attr) || '').split(/[?#]/)[0];
+      const base = value.split('/').filter(Boolean).pop();
+      if (base) return base.slice(0, 200);
+    }
+    if (el.id) return el.id;
+    const cls = [...(el.classList || [])].find((c) => c.indexOf('impeccable-') !== 0);
+    if (cls) return cls;
+    return normalizeManualContextText(el.textContent).slice(0, 200);
+  }
+
+  function removalDisallowedReason(el) {
+    if (!el || !el.isConnected || own(el)) return 'no_selection';
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'html' || tag === 'body') return 'root';
+    if (el.hasAttribute('data-impeccable-insert-placeholder')) return 'placeholder';
+    if (el.closest('[data-impeccable-variants], [data-impeccable-carbonize]')) return 'variant';
+    return null;
+  }
+
+  // Remove badge: stage one removal op through the same buffer copy edits
+  // use, hide the element, and offer Undo. The source edit happens when the
+  // user clicks Apply, like every other staged edit.
+  async function removeSelectedElement() {
+    if (pendingApplyInFlight) { showManualApplyBusyToast(); return; }
+    const target = selectedElement;
+    const refused = removalDisallowedReason(target);
+    if (refused) {
+      if (refused !== 'no_selection') showToast('This element cannot be removed from here.', 3500);
+      return;
+    }
+    const parent = target.parentElement;
+    const ref = documentRefForElement(target);
+    const originalText = removalOriginalText(target);
+    if (!originalText) {
+      // Nothing to find it by in source, so the applier could neither locate
+      // nor verify the removal. Better to say so than to stage a dead op.
+      showToast('Nothing identifies this element in source; give it an id or class, or remove it in the editor.', 5000);
+      return;
+    }
+    const op = {
+      ref,
+      tag: target.tagName.toLowerCase(),
+      elementId: target.id || null,
+      classes: [...target.classList].filter((cls) => cls.indexOf('impeccable-') !== 0),
+      originalText,
+      deleted: true,
+      removeElement: true,
+      leaf: copyEditLeafContext(target, originalText, ''),
+    };
+    const contextRef = documentRefForElement(parent);
+    if (contextRef) op.contextRef = contextRef;
+    const container = copyEditContainerContext(parent);
+    if (container) op.container = container;
+    const sourceHint = sourceHintForElement(target);
+    if (sourceHint) op.sourceHint = sourceHint;
+    hideConfigureBarTooltip();
+    let stashResult;
+    try {
+      const res = await fetch('http://localhost:' + PORT + '/manual-edit-stash?token=' + encodeURIComponent(TOKEN), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: TOKEN,
+          id: id8(),
+          pageUrl: location.pathname,
+          element: extractContext(parent || target),
+          ops: [op],
+        }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || ('HTTP ' + res.status));
+      }
+      stashResult = await res.json();
+    } catch (err) {
+      console.error('[impeccable] element removal stash failed:', err);
+      showToast('Remove failed - retry or cancel', 4000);
+      return;
+    }
+    ensureRemovedElementStyle();
+    target.setAttribute(REMOVED_ATTR, ref || op.tag);
+    selectedElement = null;
+    exitConfigureToPicking('remove-element', { clearHover: true });
+    updatePendingCounter(stashResult.pendingCount || 0);
+    showToast('Removed ' + desc(target), 6000, {
+      action: { label: 'Undo', onClick: () => undoElementRemoval(target, ref) },
+    });
+  }
+
+  async function undoElementRemoval(target, ref) {
+    if (pendingApplyInFlight) { showManualApplyBusyToast(); return; }
+    dismissToast();
+    try {
+      const res = await fetch(
+        'http://localhost:' + PORT + '/manual-edit-discard?token=' + encodeURIComponent(TOKEN)
+          + '&pageUrl=' + encodeURIComponent(location.pathname)
+          + '&ref=' + encodeURIComponent(ref || ''),
+        { method: 'POST' },
+      );
+      if (res.status === 409) {
+        // An Apply owns this page's edits (started from another tab, or
+        // before our dock caught up); the removal stays staged and hidden.
+        showToast('Apply is running; undo once it finishes', 4000);
+        fetchPendingCount();
+        return;
+      }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const result = await res.json().catch(() => ({}));
+      target.removeAttribute(REMOVED_ATTR);
+      const remaining = remainingManualEditCount(result);
+      if (remaining === null) fetchPendingCount();
+      else updatePendingCounter(remaining);
+      showToast('Restored ' + desc(target), 2500);
+    } catch (err) {
+      console.error('[impeccable] undo removal failed:', err);
+      showToast('Undo failed - see console', 4000);
+    }
+  }
+
+  function restoreRemovedElement(op) {
+    const ref = typeof op?.ref === 'string' ? op.ref : '';
+    if (!ref) return;
+    for (const el of document.querySelectorAll('[' + REMOVED_ATTR + ']')) {
+      if (el.getAttribute(REMOVED_ATTR) === ref) el.removeAttribute(REMOVED_ATTR);
+    }
+  }
+
   async function applyEditing() {
     if (pendingApplyInFlight) { showManualApplyBusyToast(); return; }
     const ops = [];
@@ -3983,7 +4142,7 @@
   }
 
   function pendingApplyLabel(count) {
-    return count === 1 ? 'Apply copy edit' : 'Apply copy edits';
+    return count === 1 ? 'Apply edit' : 'Apply edits';
   }
 
   function showManualApplyBusyToast() {
@@ -4058,13 +4217,13 @@
       const max = Number(stored.repairMaxAttempts) || 3;
       return 'Fixing apply issue, attempt ' + attempt + '/' + max;
     }
-    if (stored?.phase === 'verifying') return 'Verifying copy edits';
+    if (stored?.phase === 'verifying') return 'Verifying edits';
     const remaining = Number.isFinite(Number(stored?.remainingCount))
       ? Number(stored.remainingCount)
       : Number(fallbackCount) || 0;
     return remaining > 0
-      ? 'Applying ' + remaining + ' copy edit' + (remaining === 1 ? '' : 's')
-      : 'Verifying copy edits';
+      ? 'Applying ' + remaining + ' edit' + (remaining === 1 ? '' : 's')
+      : 'Verifying edits';
   }
 
   function resetManualApplyProgress(count) {
@@ -4120,7 +4279,7 @@
     }
     if (editBadgeEl && editBadgeEl.style.display !== 'none') {
       if (pendingApplyInFlight) renderEditBadge('idle-disabled');
-      else if (state === 'CONFIGURING' && selectedElement && hasTextRows(selectedElement)) renderEditBadge('idle');
+      else if (state === 'CONFIGURING' && selectedElement) renderEditBadge('idle');
     }
     updateGlobalBarState();
   }
@@ -4130,32 +4289,46 @@
     retryDeclinedAgentTargets();
     clearStoredManualApplyState();
     if (pendingIntroAnimation) { pendingIntroAnimation.cancel(); pendingIntroAnimation = null; }
+    renderPendingDockControls('normal', 0);
     if (pendingDockEl) pendingDockEl.style.display = 'none';
     if (pendingPillEl) {
       pendingPillEl.dataset.count = '0';
       pendingPillEl.style.display = 'none';
-      pendingPillEl.disabled = false;
-      pendingPillEl.setAttribute('aria-busy', 'false');
-      pendingPillEl.setAttribute('aria-label', 'Apply copy edits to source');
-      pendingPillEl.style.cursor = 'pointer';
-      pendingPillEl.style.filter = 'none';
+      pendingPillEl.setAttribute('aria-label', 'Apply edits to source');
+    }
+    if (pendingPillCountEl) pendingPillCountEl.textContent = '0';
+    if (pendingTrashBtn) pendingTrashBtn.style.display = 'none';
+    refreshLiveControlsForManualApply();
+  }
+
+  // Sets every control the dock's modes differ in, so leaving a mode can never
+  // leave its controls behind. 'normal': Apply and Discard enabled.
+  // 'applying': a spinner, both disabled. 'decision': Keep fixing and Rollback.
+  function renderPendingDockControls(mode, count) {
+    const applying = mode === 'applying';
+    const decision = mode === 'decision';
+    const normal = !applying && !decision;
+    if (pendingPillSpinnerEl) pendingPillSpinnerEl.style.display = applying ? 'inline-block' : 'none';
+    if (pendingPillLabelEl) {
+      pendingPillLabelEl.textContent = decision ? 'Apply needs attention'
+        : applying ? manualApplyLoadingText(count) : pendingApplyLabel(count);
+    }
+    if (pendingPillCountEl) pendingPillCountEl.style.display = normal ? 'inline-flex' : 'none';
+    if (pendingPillEl) {
+      pendingPillEl.disabled = !normal;
+      pendingPillEl.setAttribute('aria-busy', applying ? 'true' : 'false');
+      pendingPillEl.style.cursor = applying ? 'wait' : decision ? 'default' : 'pointer';
+      pendingPillEl.style.filter = applying ? 'brightness(0.98)' : 'none';
       pendingPillEl.style.transform = 'scale(1)';
     }
-    if (pendingPillSpinnerEl) pendingPillSpinnerEl.style.display = 'none';
-    if (pendingPillLabelEl) pendingPillLabelEl.textContent = pendingApplyLabel(0);
-    if (pendingPillCountEl) {
-      pendingPillCountEl.textContent = '0';
-      pendingPillCountEl.style.display = 'inline-flex';
-    }
     if (pendingTrashBtn) {
-      pendingTrashBtn.style.display = 'none';
-      pendingTrashBtn.disabled = false;
-      pendingTrashBtn.style.cursor = 'pointer';
-      pendingTrashBtn.style.opacity = '1';
+      pendingTrashBtn.style.display = decision ? 'none' : 'inline-flex';
+      pendingTrashBtn.disabled = !normal;
+      pendingTrashBtn.style.cursor = normal ? 'pointer' : 'not-allowed';
+      pendingTrashBtn.style.opacity = normal ? '1' : '0.58';
     }
-    if (pendingKeepFixingBtn) pendingKeepFixingBtn.style.display = 'none';
-    if (pendingRollbackBtn) pendingRollbackBtn.style.display = 'none';
-    refreshLiveControlsForManualApply();
+    if (pendingKeepFixingBtn) pendingKeepFixingBtn.style.display = decision ? 'inline-flex' : 'none';
+    if (pendingRollbackBtn) pendingRollbackBtn.style.display = decision ? 'inline-flex' : 'none';
   }
 
   function setPendingApplyLoading(loading, count) {
@@ -4165,24 +4338,7 @@
     const currentCount = count || parseInt(pendingPillEl.dataset.count || '0', 10) || 0;
     if (pendingApplyInFlight) storeManualApplyState(currentCount);
     else clearStoredManualApplyState();
-    if (pendingPillSpinnerEl) pendingPillSpinnerEl.style.display = pendingApplyInFlight ? 'inline-block' : 'none';
-    pendingPillLabelEl.textContent = pendingApplyInFlight
-      ? manualApplyLoadingText(currentCount)
-      : pendingApplyLabel(currentCount);
-    pendingPillCountEl.style.display = pendingApplyInFlight ? 'none' : 'inline-flex';
-    pendingPillEl.disabled = pendingApplyInFlight;
-    pendingPillEl.setAttribute('aria-busy', pendingApplyInFlight ? 'true' : 'false');
-    pendingPillEl.style.cursor = pendingApplyInFlight ? 'wait' : 'pointer';
-    pendingPillEl.style.filter = pendingApplyInFlight ? 'brightness(0.98)' : 'none';
-    pendingPillEl.style.transform = 'scale(1)';
-    pendingTrashBtn.disabled = pendingApplyInFlight;
-    pendingTrashBtn.style.cursor = pendingApplyInFlight ? 'not-allowed' : 'pointer';
-    pendingTrashBtn.style.opacity = pendingApplyInFlight ? '0.58' : '1';
-    if (pendingApplyInFlight) {
-      if (pendingKeepFixingBtn) pendingKeepFixingBtn.style.display = 'none';
-      if (pendingRollbackBtn) pendingRollbackBtn.style.display = 'none';
-      pendingTrashBtn.style.display = 'inline-flex';
-    }
+    renderPendingDockControls(pendingApplyInFlight ? 'applying' : 'normal', currentCount);
     schedulePendingDockPosition();
     refreshLiveControlsForManualApply();
   }
@@ -4196,12 +4352,13 @@
     }
     pendingPillLabelEl.textContent = pendingApplyLabel(currentPageCount);
     pendingPillCountEl.textContent = String(currentPageCount);
-    pendingPillEl.setAttribute('aria-label', 'Apply ' + currentPageCount + ' copy edit' + (currentPageCount === 1 ? '' : 's') + ' to source');
+    pendingPillEl.setAttribute('aria-label', 'Apply ' + currentPageCount + ' edit' + (currentPageCount === 1 ? '' : 's') + ' to source');
     pendingPillEl.style.display = 'inline-flex';
     pendingTrashBtn.style.display = 'inline-flex';
     pendingDockEl.style.display = 'inline-flex';
     pendingPillEl.dataset.count = String(currentPageCount);
-    if (pendingApplyInFlight || shouldResumeManualApplyLoading(currentPageCount)) setPendingApplyLoading(true, currentPageCount);
+    if (readStoredManualApplyState()?.phase === 'repair-decision') showManualApplyDecision();
+    else if (pendingApplyInFlight || shouldResumeManualApplyLoading(currentPageCount)) setPendingApplyLoading(true, currentPageCount);
     schedulePendingDockPosition();
     if (previousCount <= 0) playPendingIntroAnimation();
   }
@@ -4209,7 +4366,7 @@
   function maybeShowFirstSaveToast() {
     if (!firstSaveOfSession) return;
     firstSaveOfSession = false;
-    showToast('Saved. Click "Apply copy edits" to write changes.', 4500);
+    showToast('Saved. Click "Apply edits" to write changes.', 4500);
   }
 
   async function fetchPendingCount() {
@@ -4228,7 +4385,7 @@
   async function onPendingPillClick() {
     const count = parseInt(pendingPillEl?.dataset.count || '0', 10);
     if (count <= 0 || pendingApplyInFlight) return;
-    const ok = confirm('Apply ' + count + ' copy edit' + (count === 1 ? '' : 's') + ' to source?');
+    const ok = confirm('Apply ' + count + ' edit' + (count === 1 ? '' : 's') + ' to source?');
     if (!ok) return;
     let waitForSseCompletion = false;
     resetManualApplyProgress(count);
@@ -4275,7 +4432,7 @@
   async function onPendingTrashClick() {
     const count = parseInt(pendingPillEl?.dataset.count || '0', 10);
     if (count <= 0 || pendingApplyInFlight) return;
-    const ok = confirm('Discard ' + count + ' copy edit' + (count === 1 ? '' : 's') + ' on this page?');
+    const ok = confirm('Discard ' + count + ' edit' + (count === 1 ? '' : 's') + ' on this page?');
     if (!ok) return;
     try {
       const res = await fetch(
@@ -4287,9 +4444,9 @@
       const restoreFailures = restoreDiscardedManualEdits(result.entries || []);
       updatePendingCounter(0);
       if (restoreFailures > 0) {
-        showToast('Discarded ' + count + ' copy edit' + (count === 1 ? '' : 's') + ' - refresh to reset ' + restoreFailures, 4000);
+        showToast('Discarded ' + count + ' edit' + (count === 1 ? '' : 's') + ' - refresh to reset ' + restoreFailures, 4000);
       } else {
-        showToast('Discarded ' + count + ' copy edit' + (count === 1 ? '' : 's'), 2500);
+        showToast('Discarded ' + count + ' edit' + (count === 1 ? '' : 's'), 2500);
       }
     } catch (err) {
       console.error('[impeccable] discard failed:', err);
@@ -4305,18 +4462,8 @@
       repairAttempt: numberOrNull(msg?.repair?.attempts) || numberOrNull(msg?.repair?.attempt) || 3,
       repairMaxAttempts: numberOrNull(msg?.repair?.maxAttempts) || 3,
     });
-    if (pendingPillSpinnerEl) pendingPillSpinnerEl.style.display = 'none';
-    if (pendingPillLabelEl) pendingPillLabelEl.textContent = 'Apply needs attention';
-    if (pendingPillCountEl) pendingPillCountEl.style.display = 'none';
-    if (pendingPillEl) {
-      pendingPillEl.disabled = true;
-      pendingPillEl.setAttribute('aria-busy', 'false');
-      pendingPillEl.style.cursor = 'default';
-      pendingPillEl.style.display = 'inline-flex';
-    }
-    if (pendingTrashBtn) pendingTrashBtn.style.display = 'none';
-    if (pendingKeepFixingBtn) pendingKeepFixingBtn.style.display = 'inline-flex';
-    if (pendingRollbackBtn) pendingRollbackBtn.style.display = 'inline-flex';
+    renderPendingDockControls('decision', count);
+    if (pendingPillEl) pendingPillEl.style.display = 'inline-flex';
     if (pendingDockEl) pendingDockEl.style.display = 'inline-flex';
     schedulePendingDockPosition();
     refreshLiveControlsForManualApply();
@@ -4332,9 +4479,6 @@
         { method: 'POST', keepalive: true },
       );
       if (!res.ok) throw new Error('HTTP ' + res.status);
-      if (pendingKeepFixingBtn) pendingKeepFixingBtn.style.display = 'none';
-      if (pendingRollbackBtn) pendingRollbackBtn.style.display = 'none';
-      if (pendingTrashBtn) pendingTrashBtn.style.display = 'inline-flex';
     } catch (err) {
       console.error('[impeccable] repair retry failed:', err);
       showToast('Repair retry failed - see console', 4000);
@@ -4356,9 +4500,9 @@
       );
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const result = await res.json().catch(() => ({}));
-      clearStoredManualApplyState();
+      setPendingApplyLoading(false);
       updatePendingCounter(numberOrNull(result.remainingCount) || 0);
-      showToast('Rolled back source; copy edits are still staged.', 3500);
+      showToast('Rolled back source; edits are still staged.', 3500);
     } catch (err) {
       console.error('[impeccable] manual Apply rollback failed:', err);
       showToast('Rollback failed - see console', 4000);
@@ -4419,7 +4563,7 @@
     }
 
     if (msg.type === 'manual_edit_repair_rollback_done') {
-      clearStoredManualApplyState();
+      setPendingApplyLoading(false);
       fetchPendingCount();
       return;
     }
@@ -4463,7 +4607,11 @@
   function restoreDiscardedManualEdits(entries) {
     let failures = 0;
     for (const entry of entries || []) {
-      for (const op of entry.ops || []) {
+      // A removal that superseded a copy edit carries it; a discard that
+      // drops both must restore the text as well as the element.
+      const ops = (entry.ops || []).flatMap((op) => (op?.supersededOp ? [op, op.supersededOp] : [op]));
+      for (const op of ops) {
+        if (op?.removeElement === true) { restoreRemovedElement(op); continue; }
         if (restoreMixedTextNodeManualEdit(op)) continue;
         const el = findManualEditRestoreElement(op);
         if (!el || typeof op.originalText !== 'string' || !canRestoreManualEditElement(el, op)) {
@@ -4604,6 +4752,14 @@
     '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>' +
     '</svg>';
+  const REMOVE_ELEMENT_LABEL = 'Remove element';
+  const REMOVE_ELEMENT_ICON =
+    '<svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M3 4h8"/><path d="M5 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1"/><path d="M4 4l.5 7a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1L10 4"/>' +
+    '</svg>';
+  // Coral chip, ink glyph: the pencil's own recipe in a destructive hue, so
+  // the two badges carry equal weight on light and dark pages.
+  const REMOVE_BADGE_FILL = 'oklch(66% 0.17 30)';
 
   function usesShadowChromeRoot() {
     const root = liveUiRoot();
@@ -4842,40 +4998,49 @@
     if (mode === 'idle' || mode === 'idle-disabled') {
       const disabled = mode === 'idle-disabled';
       editBadgeEl.innerHTML = '';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.innerHTML = EDIT_COPY_ICON;
-      btn.setAttribute('aria-label', EDIT_COPY_LABEL);
-      Object.assign(btn.style, calloutStyle(
-        disabled ? MUTED : PRIMARY_TEXT,
-        disabled ? HAIRLINE : ACCENT,
-      ));
-      Object.assign(btn.style, {
-        padding: '4px',
-        minWidth: '22px',
-        width: '22px',
-        height: '22px',
-        minHeight: '22px',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        lineHeight: '0',
-        letterSpacing: '0',
-        background: disabled ? SURFACE : ACCENT,
-      });
-      if (disabled) {
-        btn.style.cursor = 'not-allowed';
-        btn.style.opacity = '0.55';
-        btn.disabled = true;
-        const disabledTip = EDIT_COPY_LABEL + ' is disabled while the current copy edit is applying';
-        btn.addEventListener('mouseenter', () => showConfigureBarTooltip(btn, disabledTip));
-        btn.addEventListener('mouseleave', hideConfigureBarTooltip);
-      } else {
-        btn.addEventListener('mouseenter', () => showConfigureBarTooltip(btn, EDIT_COPY_LABEL));
-        btn.addEventListener('mouseleave', hideConfigureBarTooltip);
-        btn.onclick = enterEditingMode;
+      editBadgeEl.style.gap = '4px';
+      const chip = (icon, label, fill, onClick) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.innerHTML = icon;
+        btn.setAttribute('aria-label', label);
+        Object.assign(btn.style, calloutStyle(
+          disabled ? MUTED : PRIMARY_TEXT,
+          disabled ? HAIRLINE : fill,
+        ));
+        Object.assign(btn.style, {
+          padding: '4px',
+          minWidth: '22px',
+          width: '22px',
+          height: '22px',
+          minHeight: '22px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          lineHeight: '0',
+          letterSpacing: '0',
+          background: disabled ? SURFACE : fill,
+        });
+        if (disabled) {
+          btn.style.cursor = 'not-allowed';
+          btn.style.opacity = '0.55';
+          btn.disabled = true;
+          const disabledTip = label + ' is disabled while the current edit is applying';
+          btn.addEventListener('mouseenter', () => showConfigureBarTooltip(btn, disabledTip));
+          btn.addEventListener('mouseleave', hideConfigureBarTooltip);
+        } else {
+          btn.addEventListener('mouseenter', () => showConfigureBarTooltip(btn, label));
+          btn.addEventListener('mouseleave', hideConfigureBarTooltip);
+          btn.onclick = onClick;
+        }
+        return btn;
+      };
+      // The pencil only shows when there is copy to edit; Remove is the last
+      // chip on every selection, the destructive action at the far end.
+      if (selectedElement && hasTextRows(selectedElement)) {
+        editBadgeEl.appendChild(chip(EDIT_COPY_ICON, EDIT_COPY_LABEL, ACCENT, enterEditingMode));
       }
-      editBadgeEl.appendChild(btn);
+      editBadgeEl.appendChild(chip(REMOVE_ELEMENT_ICON, REMOVE_ELEMENT_LABEL, REMOVE_BADGE_FILL, removeSelectedElement));
     } else {
       // 'editing' - show Cancel + Save separated
       editBadgeEl.innerHTML = '';
@@ -4979,7 +5144,7 @@
   }
 
   // Build/rebuild the panel's contents for the current variant AND apply
-  // its defaults to the variant wrapper (so scoped CSS responds even before
+  // its values to the variant wrapper (so scoped CSS responds even before
   // the user opens the popover). Visibility is governed by tuneOpen.
   function refreshParamsPanel() {
     if (state !== 'CYCLING') {
@@ -4990,9 +5155,9 @@
     }
     const variantEl = getVisibleVariantEl();
     const params = parseVariantParams(variantEl);
-    // Values saved before a reload come back for the variant they were saved
-    // on; a switch to any other variant starts from its defaults.
-    const restored = restoredParamValuesForVisibleVariant();
+    // Values kept for this session and variant (restored by a reload, or the
+    // last knob edit) come back; any other variant starts from its defaults.
+    const kept = keptParamValuesForVisibleVariant();
     if (!variantEl || params.length === 0) {
       paramsCurrentValues = {};
       tuneOpen = false;
@@ -5001,7 +5166,7 @@
       return;
     }
     applyParamDefaults(variantEl, params);
-    if (restored) applySavedParamValues(variantEl, params, restored);
+    if (kept) applySavedParamValues(variantEl, params, kept);
     buildParamsPanel(variantEl, params);
     if (tuneOpen) {
       // If already visible (variant cycled while open), refresh in place
@@ -6335,8 +6500,8 @@
     showToast('The previous live session no longer matches the source file, so it was discarded. Pick an element to start fresh.', 6000);
   }
 
-  function isJsxSourceFile(filePath) {
-    return /\.[cm]?[jt]sx$/i.test(String(filePath || ''));
+  function isCompiledTemplateSourceFile(filePath) {
+    return /\.([cm]?[jt]sx|vue|svelte)$/i.test(String(filePath || ''));
   }
 
   function sourceHasSessionWrapper(text, sessionId) {
@@ -6483,15 +6648,15 @@
       return;
     }
     rememberSessionFileMeta({ file: filePath });
-    if (isJsxSourceFile(filePath)) {
+    if (isCompiledTemplateSourceFile(filePath)) {
       const liveWrapper = findVariantsWrapper(sessionId);
       if (liveWrapper && liveWrapper.querySelector('[data-impeccable-variant]:not([data-impeccable-variant="original"])')) {
         completeSourceInjection(liveWrapper, sessionId, { ...opts, filePath });
         return;
       }
-      // #454: never fetch/parse JSX. Missing wrap waits for mount (closed
-      // modal / other route). Insert scaffolds stay for late HMR. A replace
-      // scaffold with no variants after retries is a failed generation.
+      // #454, #1279, #1282: never fetch/parse JSX, Vue or Svelte. Missing wrap waits for
+      // mount (closed modal / other route). Insert scaffolds stay for late HMR.
+      // A replace scaffold with no variants after retries is a failed generation.
       if (opts.generationCompleted && sessionId === currentSessionId) {
         const attempt = opts.attempt || 0;
         if (attempt < COMPLETED_SOURCE_FALLBACK_RETRIES) {
@@ -8035,8 +8200,11 @@
       return;
     }
     if (state !== 'PICKING' || !pickActive) return;
-    const target = document.elementFromPoint(e.clientX, e.clientY);
-    if (!target || !pickable(target) || target === hoveredElement) return;
+    let target = document.elementFromPoint(e.clientX, e.clientY);
+    if (own(target)) return;
+    // Too small to pick (a bare <label>, an icon): take the nearest ancestor that is (#1297).
+    while (target && !pickable(target)) target = target.parentElement;
+    if (!target || target === hoveredElement) return;
     hoveredElement = target;
     showHighlight(target);
   }
@@ -8110,7 +8278,7 @@
     clearAnnotations();
     showAnnotOverlay(selectedElement);
     showBar('configure');
-    renderEditBadge(hasTextRows(selectedElement) ? 'idle' : 'hidden');
+    renderEditBadge('idle');
     startScrollTracking();
     maybePrefetchPage();
     maybeWarnConditionalAncestor(selectedElement);
@@ -8190,9 +8358,17 @@
     sendEvent({ type: 'prefetch', pageUrl: path });
   }
 
+  // Delete or Backspace with no modifier, the keyboard's way to the Remove
+  // badge. It only acts on an empty prompt, so clearing typed text never
+  // takes the element with it.
+  function isRemoveKey(e) {
+    return (e.key === 'Delete' || e.key === 'Backspace')
+      && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && !isImeKeydown(e);
+  }
+
   function shouldPassthroughElementNav(deepActive, e) {
     if (!deepActive || !own(deepActive)) return false;
-    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return false;
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && !isRemoveKey(e)) return false;
     if (!/^(INPUT|TEXTAREA)$/.test(deepActive.tagName || '')) return false;
     if (deepActive.value) return false;
     if (deepActive.id === PREFIX + '-input' && state === 'CONFIGURING') return true;
@@ -8263,6 +8439,13 @@
       }
     }
 
+    if (isRemoveKey(e) && state === 'CONFIGURING' && selectedElement && configureKind !== 'insert') {
+      e.preventDefault();
+      e.stopPropagation();
+      removeSelectedElement();
+      return;
+    }
+
     // Arrow/Enter nav works in PICKING (hover) and CONFIGURING (selected, input empty)
     var navEl = (state === 'PICKING') ? hoveredElement : (state === 'CONFIGURING') ? selectedElement : null;
     if (navEl && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || (e.key === 'Enter' && state === 'PICKING'))) {
@@ -8287,7 +8470,7 @@
         clearAnnotations();
         showAnnotOverlay(selectedElement);
         showBar('configure');
-        renderEditBadge(hasTextRows(selectedElement) ? 'idle' : 'hidden');
+        renderEditBadge('idle');
         startScrollTracking();
         return;
       }
@@ -8302,7 +8485,7 @@
           showAnnotOverlay(next);
           showBar('configure');
           disableInlineEdit();
-          renderEditBadge(hasTextRows(selectedElement) ? 'idle' : 'hidden');
+          renderEditBadge('idle');
           startScrollTracking();
         }
         showHighlight(next);
@@ -8531,6 +8714,12 @@
     }
     return btoa(binary);
   }
+  // CSSOM keeps url() as written, and a relative source can't load inside the rasterized SVG.
+  function absolutizeUrls(cssText, base) {
+    return cssText.replace(/url\((?:(['"])([^'"]*)\1|([^'")\s]+))\)/g, (orig, q = '', quoted, bare) => {
+      try { return 'url(' + q + new URL(quoted ?? bare, base).href + q + ')'; } catch { return orig; }
+    });
+  }
   async function inlineFontUrls(cssText) {
     const urlRe = /url\((['"]?)(https?:\/\/[^'")\s]+)\1\)/g;
     const urls = new Set();
@@ -8562,7 +8751,7 @@
         const rules = sheet.cssRules;
         for (const rule of rules) {
           if (rule.constructor.name === 'CSSFontFaceRule' || rule.cssText?.startsWith('@font-face')) {
-            chunks.push(rule.cssText);
+            chunks.push(absolutizeUrls(rule.cssText, sheet.href || document.baseURI));
           }
         }
       } catch {
@@ -8572,7 +8761,7 @@
           if (!res.ok) continue;
           const text = await res.text();
           let m2;
-          while ((m2 = fontFaceRe.exec(text))) chunks.push(m2[0]);
+          while ((m2 = fontFaceRe.exec(text))) chunks.push(absolutizeUrls(m2[0], sheet.href));
         } catch { /* ignore; capture is best-effort */ }
       }
     }
@@ -9941,8 +10130,9 @@ void main() {
     toastEl = null;
   }
 
-  function showToast(message, duration) {
+  function showToast(message, duration, opts) {
     dismissToast();
+    const action = opts && opts.action;
     // Stack the toast above the global bar (which sits at bottom:14px) so
     // the two never overlap. Read the bar's actual rect - its height varies
     // with hover-expanded labels - and fall back to a sensible default
@@ -9959,11 +10149,33 @@ void main() {
       padding: '8px 16px', borderRadius: '8px',
       zIndex: Z.toast, opacity: '0',
       transition: 'opacity 0.25s ' + EASE + ', transform 0.25s ' + EASE,
-      pointerEvents: 'none', maxWidth: '420px', textAlign: 'center',
+      pointerEvents: action ? 'auto' : 'none', maxWidth: '420px', textAlign: 'center',
     });
     toastEl = currentToast;
     currentToast.id = PREFIX + '-toast';
-    currentToast.textContent = message;
+    if (action) {
+      Object.assign(currentToast.style, {
+        display: 'inline-flex', alignItems: 'center', gap: '12px', padding: '6px 6px 6px 16px',
+      });
+      const label = el('span', { whiteSpace: 'nowrap' });
+      label.textContent = message;
+      const btn = el('button', {
+        fontFamily: FONT, fontSize: '12px', fontWeight: '600', lineHeight: '1',
+        color: C.ink, background: C.brand, border: 'none', borderRadius: '999px',
+        padding: '6px 11px', cursor: 'pointer', whiteSpace: 'nowrap',
+      });
+      btn.type = 'button';
+      btn.textContent = action.label;
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (toastEl === currentToast) dismissToast();
+        action.onClick();
+      });
+      currentToast.append(label, btn);
+    } else {
+      currentToast.textContent = message;
+    }
     uiAppend(currentToast);
     requestAnimationFrame(() => {
       if (toastEl !== currentToast) return;
@@ -11923,7 +12135,7 @@ void main() {
       boxShadow: '0 4px 16px oklch(0% 0 0 / 0.16), 0 1px 3px oklch(0% 0 0 / 0.1)',
       transition: 'filter 0.12s ease, transform 0.1s ease, box-shadow 0.18s ease',
     });
-    pendingPillEl.title = 'Apply copy edits to source';
+    pendingPillEl.title = 'Apply edits to source';
     pendingPillSpinnerEl = el('span', {
       display: 'none',
       width: '12px',
@@ -11938,7 +12150,7 @@ void main() {
       boxSizing: 'border-box',
     });
     pendingPillLabelEl = el('span', { lineHeight: '1', whiteSpace: 'nowrap' });
-    pendingPillLabelEl.textContent = 'Apply copy edits';
+    pendingPillLabelEl.textContent = 'Apply edits';
     pendingPillCountEl = el('span', {
       display: 'inline-flex',
       alignItems: 'center',
@@ -12008,10 +12220,10 @@ void main() {
       textAlign: 'center',
       transition: 'opacity 0.16s ease, transform 0.18s ' + EASE,
     });
-    pendingTrashTooltipEl.textContent = 'Discard copy edits';
+    pendingTrashTooltipEl.textContent = 'Discard edits';
     pendingTrashTooltipEl.setAttribute('role', 'tooltip');
     pendingTrashBtn.appendChild(pendingTrashTooltipEl);
-    pendingTrashBtn.setAttribute('aria-label', 'Discard copy edits on this page');
+    pendingTrashBtn.setAttribute('aria-label', 'Discard edits on this page');
     const showTrashTooltip = () => {
       pendingTrashBtn.style.color = P.accent;
       pendingTrashBtn.style.boxShadow = '0 7px 22px oklch(0% 0 0 / 0.16), 0 2px 5px oklch(0% 0 0 / 0.1)';
@@ -12057,7 +12269,7 @@ void main() {
     pendingKeepFixingBtn.setAttribute('aria-label', 'Ask the agent to keep fixing Apply errors');
     pendingKeepFixingBtn.addEventListener('click', onPendingKeepFixingClick);
     pendingRollbackBtn = makePendingDecisionBtn('Rollback', false);
-    pendingRollbackBtn.setAttribute('aria-label', 'Rollback source and keep copy edits staged');
+    pendingRollbackBtn.setAttribute('aria-label', 'Rollback source and keep edits staged');
     pendingRollbackBtn.addEventListener('click', onPendingRollbackClick);
 
     pendingDockEl.appendChild(pendingPillEl);
